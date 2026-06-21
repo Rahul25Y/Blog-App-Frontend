@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FiHeart, FiEdit2, FiTrash2, FiUser, FiFileText } from "react-icons/fi";
+import { useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { likeBlog } from "../../redux/blogSlice";
 import ReadMoreModal from "./ReadMoreModal";
@@ -13,6 +14,14 @@ const BlogCard = ({ blog, isOwner, onEdit, onDelete }) => {
   const isPdfFile =
     blog?.fileType === "application/pdf" ||
     blog?.fileUrl?.toLowerCase().endsWith(".pdf");
+
+  const createdAt = blog?.createdAt;
+  const createdAtLabel = useMemo(() => {
+    if (!createdAt) return "";
+    const date = new Date(createdAt);
+    const options = { day: "numeric", month: "short", year: "numeric" };
+    return date.toLocaleDateString(undefined, options);
+  }, [createdAt]);
 
   const handleLike = (e) => {
     e.preventDefault();
@@ -126,12 +135,25 @@ const BlogCard = ({ blog, isOwner, onEdit, onDelete }) => {
                 {blog?.creator?.name?.charAt(0).toUpperCase()}
               </div>
             )}
-            <span
-              className="fw-medium text-truncate"
-              style={{ maxWidth: "120px" }}
+            <div
+              className="d-flex flex-column text-truncate"
+              style={{ minWidth: 0 }}
             >
-              {blog?.creator?.name || "Unknown User"}
-            </span>
+              <span
+                className="fw-medium text-truncate"
+                style={{ maxWidth: "140px" }}
+              >
+                {blog?.creator?.name || "Unknown User"}
+              </span>
+              {createdAtLabel && (
+                <span
+                  className="text-muted-custom"
+                  style={{ fontSize: "0.75rem", lineHeight: 1.2 }}
+                >
+                  📅 {createdAtLabel}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="d-flex align-items-center gap-3">

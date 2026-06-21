@@ -26,6 +26,17 @@ const EditProfileModal = ({ show, onClose }) => {
     return () => clearTimeout(timeoutId);
   }, [show]);
 
+  useEffect(() => {
+    if (show) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = previousOverflow;
+      };
+    }
+    return undefined;
+  }, [show]);
+
   const profilePreview = useMemo(() => {
     if (selectedProfileImage) {
       if (objectUrlRef.current) {
@@ -45,7 +56,6 @@ const EditProfileModal = ({ show, onClose }) => {
     };
   }, []);
 
-  // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
@@ -96,7 +106,7 @@ const EditProfileModal = ({ show, onClose }) => {
         if (data.success) {
           dispatch(updateProfileSuccess(data.data));
           toast.success("Profile updated successfully");
-          onClose(); // Close modal automatically
+          onClose();
         } else {
           toast.error(data.message || "Failed to update profile");
         }
@@ -112,38 +122,46 @@ const EditProfileModal = ({ show, onClose }) => {
 
   const modalContent = (
     <div
-      className="modal-overlay"
+      className="edit-profile-modal-backdrop"
       style={{
         position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        zIndex: 1050,
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: "rgba(15, 23, 42, 0.65)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: "1rem",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
         opacity: isRendered ? 1 : 0,
         transition: "opacity 0.2s ease-in-out",
-        padding: "1rem",
       }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="modal-dialog-custom w-100"
         style={{
+          width: "100%",
           maxWidth: "550px",
+          margin: "auto",
           transform: isRendered ? "translateY(0)" : "translateY(-20px)",
-          transition: "transform 0.2s ease-out",
+          transition: "transform 0.2s ease-out, opacity 0.2s ease-in-out",
+          opacity: isRendered ? 1 : 0,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
           className="modal-content border-color shadow-lg"
           style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            maxHeight: "80vh",
             backgroundColor: "var(--card-bg)",
-            borderRadius: "12px",
+            borderRadius: "14px",
             overflow: "hidden",
           }}
         >
@@ -156,11 +174,22 @@ const EditProfileModal = ({ show, onClose }) => {
               className="btn-close"
               onClick={onClose}
               aria-label="Close"
-            ></button>
+            />
           </div>
 
-          <form onSubmit={formik.handleSubmit}>
-            <div className="modal-body text-color p-4">
+          <form
+            onSubmit={formik.handleSubmit}
+            style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
+          >
+            <div
+              className="modal-body text-color"
+              style={{
+                padding: "1.25rem",
+                overflowY: "auto",
+                flex: "1 1 auto",
+                minHeight: 0,
+              }}
+            >
               <div className="mb-3">
                 <label
                   className="form-label fw-medium text-color"
@@ -234,42 +263,29 @@ const EditProfileModal = ({ show, onClose }) => {
             </div>
 
             <div
-              className="modal-footer border-top border-color p-3 d-flex justify-content-end"
+              className="modal-footer border-top border-color p-3 d-flex flex-column flex-sm-row justify-content-end align-items-stretch align-items-sm-center"
               style={{ gap: "12px" }}
             >
               <button
                 type="button"
-                className="btn d-flex align-items-center justify-content-center flex-grow-1 flex-sm-grow-0 pill-btn-hover"
+                className="btn btn-outline-secondary d-flex align-items-center justify-content-center flex-grow-1 flex-sm-grow-0"
                 onClick={onClose}
                 style={{
-                  height: "48px",
+                  minHeight: "48px",
                   borderRadius: "999px",
                   padding: "0 24px",
-                  backgroundColor: "#F1F5F9",
-                  color: "#334155",
-                  border: "1px solid #CBD5E1",
-                  fontWeight: "600",
-                  letterSpacing: "0.5px",
-                  transition: "all 0.3s ease",
                 }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="btn d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-sm-grow-0 pill-btn-hover"
+                className="btn btn-primary d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-sm-grow-0"
                 disabled={isSubmitting}
                 style={{
-                  height: "48px",
+                  minHeight: "48px",
                   borderRadius: "999px",
                   padding: "0 24px",
-                  backgroundColor: "#2563EB",
-                  color: "white",
-                  border: "none",
-                  fontWeight: "600",
-                  letterSpacing: "0.5px",
-                  boxShadow: "0 8px 20px rgba(37,99,235,0.25)",
-                  transition: "all 0.3s ease",
                 }}
               >
                 {isSubmitting ? (
@@ -277,7 +293,7 @@ const EditProfileModal = ({ show, onClose }) => {
                     className="spinner-border spinner-border-sm"
                     role="status"
                     aria-hidden="true"
-                  ></span>
+                  />
                 ) : (
                   <FiSave size={16} />
                 )}
@@ -290,7 +306,6 @@ const EditProfileModal = ({ show, onClose }) => {
     </div>
   );
 
-  // Render the modal directly into document.body
   return ReactDOM.createPortal(modalContent, document.body);
 };
 
