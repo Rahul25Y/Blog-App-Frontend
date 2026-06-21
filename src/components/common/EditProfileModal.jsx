@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useFormik } from "formik";
@@ -13,15 +13,37 @@ const EditProfileModal = ({ show, onClose }) => {
   const dispatch = useDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRendered, setIsRendered] = useState(false);
+  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
+  const objectUrlRef = useRef("");
 
-  // Trigger smooth animations
   useEffect(() => {
+    let timeoutId;
     if (show) {
-      setTimeout(() => setIsRendered(true), 10);
+      timeoutId = setTimeout(() => setIsRendered(true), 10);
     } else {
       setIsRendered(false);
     }
+    return () => clearTimeout(timeoutId);
   }, [show]);
+
+  const profilePreview = useMemo(() => {
+    if (selectedProfileImage) {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+      objectUrlRef.current = URL.createObjectURL(selectedProfileImage);
+      return objectUrlRef.current;
+    }
+    return user?.profileImageUrl || "";
+  }, [selectedProfileImage, user?.profileImageUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
 
   // Handle ESC key
   useEffect(() => {
@@ -36,6 +58,12 @@ const EditProfileModal = ({ show, onClose }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [show, onClose]);
 
+  useEffect(() => {
+    if (!show) {
+      setSelectedProfileImage(null);
+    }
+  }, [show, user?.profileImageUrl]);
+
   const formik = useFormik({
     initialValues: {
       name: user?.name || "",
@@ -47,14 +75,24 @@ const EditProfileModal = ({ show, onClose }) => {
         .min(3, "Name must be at least 3 characters")
         .required("Name is required"),
       email: Yup.string()
-        .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, "Please enter a valid email address")
+        .matches(
+          /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+          "Please enter a valid email address",
+        )
         .required("Email is required"),
     }),
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
-        const data = await updateProfile(user._id, values.name, values.email);
-        
+        const formData = new FormData();
+        formData.append("name", values.name);
+        formData.append("email", values.email);
+        if (selectedProfileImage) {
+          formData.append("profileImage", selectedProfileImage);
+        }
+
+        const data = await updateProfile(user._id, formData);
+
         if (data.success) {
           dispatch(updateProfileSuccess(data.data));
           toast.success("Profile updated successfully");
@@ -73,7 +111,7 @@ const EditProfileModal = ({ show, onClose }) => {
   if (!show) return null;
 
   const modalContent = (
-    <div 
+    <div
       className="modal-overlay"
       style={{
         position: "fixed",
@@ -88,29 +126,46 @@ const EditProfileModal = ({ show, onClose }) => {
         alignItems: "center",
         opacity: isRendered ? 1 : 0,
         transition: "opacity 0.2s ease-in-out",
-        padding: "1rem"
+        padding: "1rem",
       }}
       onClick={onClose}
     >
-      <div 
-        className="modal-dialog-custom w-100" 
+      <div
+        className="modal-dialog-custom w-100"
         style={{
           maxWidth: "550px",
           transform: isRendered ? "translateY(0)" : "translateY(-20px)",
-          transition: "transform 0.2s ease-out"
+          transition: "transform 0.2s ease-out",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-content border-color shadow-lg" style={{ backgroundColor: "var(--card-bg)", borderRadius: "12px", overflow: "hidden" }}>
+        <div
+          className="modal-content border-color shadow-lg"
+          style={{
+            backgroundColor: "var(--card-bg)",
+            borderRadius: "12px",
+            overflow: "hidden",
+          }}
+        >
           <div className="modal-header border-bottom border-color p-3 d-flex justify-content-between align-items-center">
-            <h5 className="modal-title fw-bold text-color mb-0">Edit Profile</h5>
-            <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+            <h5 className="modal-title fw-bold text-color mb-0">
+              Edit Profile
+            </h5>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={onClose}
+              aria-label="Close"
+            ></button>
           </div>
-          
+
           <form onSubmit={formik.handleSubmit}>
             <div className="modal-body text-color p-4">
               <div className="mb-3">
-                <label className="form-label fw-medium text-color" htmlFor="modal-name">
+                <label
+                  className="form-label fw-medium text-color"
+                  htmlFor="modal-name"
+                >
                   Full Name
                 </label>
                 <input
@@ -126,7 +181,10 @@ const EditProfileModal = ({ show, onClose }) => {
               </div>
 
               <div className="mb-3">
-                <label className="form-label fw-medium text-color" htmlFor="modal-email">
+                <label
+                  className="form-label fw-medium text-color"
+                  htmlFor="modal-email"
+                >
                   Email Address
                 </label>
                 <input
@@ -140,34 +198,70 @@ const EditProfileModal = ({ show, onClose }) => {
                   <div className="invalid-feedback">{formik.errors.email}</div>
                 ) : null}
               </div>
+
+              <div className="mb-3">
+                <label
+                  className="form-label fw-medium text-color"
+                  htmlFor="modal-profile-image"
+                >
+                  Profile Image
+                </label>
+                <input
+                  type="file"
+                  id="modal-profile-image"
+                  accept="image/*"
+                  className="form-control form-control-custom"
+                  onChange={(e) =>
+                    setSelectedProfileImage(e.target.files[0] || null)
+                  }
+                />
+                {profilePreview && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-muted-custom">Preview</p>
+                    <img
+                      src={profilePreview}
+                      alt="Profile preview"
+                      className="rounded"
+                      style={{
+                        width: "100%",
+                        maxWidth: "160px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div className="modal-footer border-top border-color p-3 d-flex justify-content-end" style={{ gap: "12px" }}>
-              <button 
-                type="button" 
-                className="btn d-flex align-items-center justify-content-center flex-grow-1 flex-sm-grow-0 pill-btn-hover" 
+
+            <div
+              className="modal-footer border-top border-color p-3 d-flex justify-content-end"
+              style={{ gap: "12px" }}
+            >
+              <button
+                type="button"
+                className="btn d-flex align-items-center justify-content-center flex-grow-1 flex-sm-grow-0 pill-btn-hover"
                 onClick={onClose}
-                style={{ 
-                  height: "48px", 
-                  borderRadius: "999px", 
+                style={{
+                  height: "48px",
+                  borderRadius: "999px",
                   padding: "0 24px",
                   backgroundColor: "#F1F5F9",
                   color: "#334155",
                   border: "1px solid #CBD5E1",
                   fontWeight: "600",
                   letterSpacing: "0.5px",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-sm-grow-0 pill-btn-hover"
                 disabled={isSubmitting}
-                style={{ 
-                  height: "48px", 
-                  borderRadius: "999px", 
+                style={{
+                  height: "48px",
+                  borderRadius: "999px",
                   padding: "0 24px",
                   backgroundColor: "#2563EB",
                   color: "white",
@@ -175,11 +269,15 @@ const EditProfileModal = ({ show, onClose }) => {
                   fontWeight: "600",
                   letterSpacing: "0.5px",
                   boxShadow: "0 8px 20px rgba(37,99,235,0.25)",
-                  transition: "all 0.3s ease"
+                  transition: "all 0.3s ease",
                 }}
               >
                 {isSubmitting ? (
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span
+                    className="spinner-border spinner-border-sm"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
                 ) : (
                   <FiSave size={16} />
                 )}

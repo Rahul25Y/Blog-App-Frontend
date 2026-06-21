@@ -1,79 +1,121 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getAllBlogs, createBlog, updateBlog, deleteBlog, toggleLikeBlog, getBlogById } from '../services/api';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  getAllBlogs,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  toggleLikeBlog,
+  getBlogById,
+} from "../services/api";
 
 // Async Thunks
-export const fetchBlogs = createAsyncThunk('blog/fetchBlogs', async (_, { rejectWithValue }) => {
-  try {
-    const response = await getAllBlogs();
-    if (response.success) {
-      return response.data;
+export const fetchBlogs = createAsyncThunk(
+  "blog/fetchBlogs",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getAllBlogs();
+      if (response.success) {
+        return response.data;
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch blogs",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to fetch blogs');
-  }
-});
+  },
+);
 
-export const fetchSingleBlog = createAsyncThunk('blog/fetchSingleBlog', async (id, { rejectWithValue }) => {
-  try {
-    const response = await getBlogById(id);
-    if (response.success) {
-      return response.data;
+export const fetchSingleBlog = createAsyncThunk(
+  "blog/fetchSingleBlog",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await getBlogById(id);
+      if (response.success) {
+        return response.data;
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch blog",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to fetch blog');
-  }
-});
+  },
+);
 
-export const createNewBlog = createAsyncThunk('blog/createNewBlog', async (blogData, { rejectWithValue }) => {
-  try {
-    const response = await createBlog(blogData.title, blogData.description, blogData.draft);
-    if (response.success) {
-      return response.data;
+export const createNewBlog = createAsyncThunk(
+  "blog/createNewBlog",
+  async (blogData, { rejectWithValue }) => {
+    try {
+      const response = await createBlog(
+        blogData.title,
+        blogData.description,
+        blogData.draft,
+        blogData.file,
+      );
+      if (response.success) {
+        return response.data;
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create blog",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to create blog');
-  }
-});
+  },
+);
 
-export const editBlog = createAsyncThunk('blog/editBlog', async ({ id, title, description, draft }, { rejectWithValue }) => {
-  try {
-    const response = await updateBlog(id, title, description, draft);
-    if (response.success) {
-      return response.data;
+export const editBlog = createAsyncThunk(
+  "blog/editBlog",
+  async ({ id, title, description, draft, file }, { rejectWithValue }) => {
+    try {
+      const response = await updateBlog(id, title, description, draft, file);
+      if (response.success) {
+        return response.data;
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update blog",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to update blog');
-  }
-});
+  },
+);
 
-export const removeBlog = createAsyncThunk('blog/removeBlog', async (id, { rejectWithValue }) => {
-  try {
-    const response = await deleteBlog(id);
-    if (response.success) {
-      return id;
+export const removeBlog = createAsyncThunk(
+  "blog/removeBlog",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await deleteBlog(id);
+      if (response.success) {
+        return id;
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete blog",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to delete blog');
-  }
-});
+  },
+);
 
-export const likeBlog = createAsyncThunk('blog/likeBlog', async (id, { rejectWithValue, getState }) => {
-  try {
-    const response = await toggleLikeBlog(id);
-    if (response.success) {
-      const user = getState().user.user;
-      return { id, userId: user._id };
+export const likeBlog = createAsyncThunk(
+  "blog/likeBlog",
+  async (id, { rejectWithValue, getState }) => {
+    try {
+      const response = await toggleLikeBlog(id);
+      if (response.success) {
+        const user = getState().user.user;
+        return { id, userId: user._id };
+      }
+      return rejectWithValue(response.message);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to toggle like",
+      );
     }
-    return rejectWithValue(response.message);
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to toggle like');
-  }
-});
+  },
+);
 
 const initialState = {
   blogs: [],
@@ -83,7 +125,7 @@ const initialState = {
 };
 
 const blogSlice = createSlice({
-  name: 'blog',
+  name: "blog",
   initialState,
   reducers: {
     clearCurrentBlog: (state) => {
@@ -91,7 +133,7 @@ const blogSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -108,7 +150,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // fetchSingleBlog
       .addCase(fetchSingleBlog.pending, (state) => {
         state.loading = true;
@@ -122,7 +164,7 @@ const blogSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // createNewBlog
       .addCase(createNewBlog.pending, (state) => {
         state.loading = true;
@@ -146,7 +188,9 @@ const blogSlice = createSlice({
       })
       .addCase(editBlog.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.blogs.findIndex(b => b._id === action.payload._id);
+        const index = state.blogs.findIndex(
+          (b) => b._id === action.payload._id,
+        );
         if (index !== -1) {
           const oldCreator = state.blogs[index].creator;
           state.blogs[index] = { ...action.payload, creator: oldCreator };
@@ -167,7 +211,7 @@ const blogSlice = createSlice({
       })
       .addCase(removeBlog.fulfilled, (state, action) => {
         state.loading = false;
-        state.blogs = state.blogs.filter(b => b._id !== action.payload);
+        state.blogs = state.blogs.filter((b) => b._id !== action.payload);
         if (state.currentBlog && state.currentBlog._id === action.payload) {
           state.currentBlog = null;
         }
@@ -180,27 +224,29 @@ const blogSlice = createSlice({
       // likeBlog
       .addCase(likeBlog.fulfilled, (state, action) => {
         const { id, userId } = action.payload;
-        
-        const blog = state.blogs.find(b => b._id === id);
+
+        const blog = state.blogs.find((b) => b._id === id);
         if (blog) {
           if (blog.likes?.includes(userId)) {
-            blog.likes = blog.likes.filter(u => u !== userId);
+            blog.likes = blog.likes.filter((u) => u !== userId);
           } else {
             if (!blog.likes) blog.likes = [];
             blog.likes.push(userId);
           }
         }
-        
+
         if (state.currentBlog && state.currentBlog._id === id) {
           if (state.currentBlog.likes?.includes(userId)) {
-            state.currentBlog.likes = state.currentBlog.likes.filter(u => u !== userId);
+            state.currentBlog.likes = state.currentBlog.likes.filter(
+              (u) => u !== userId,
+            );
           } else {
             if (!state.currentBlog.likes) state.currentBlog.likes = [];
             state.currentBlog.likes.push(userId);
           }
         }
       });
-  }
+  },
 });
 
 export const { clearCurrentBlog, clearError } = blogSlice.actions;
